@@ -287,7 +287,7 @@ function home(){
       h+=`<div class="card"><div class="name ell">${esc(c.name)}</div>
         <div class="sub ell">Fin de mois · ${eur(c.rate)}</div>
         <div class="big l">${eur(ss.reduce((n,s)=>n+s.rate,0))}<small>${ss.length} séance${ss.length>1?'s':''} ce mois</small></div>
-        <div class="row" style="margin-top:12px"><button class="primary grow" data-log="${c.id}">+ Séance</button><button class="small" data-more="${c.id}">Atelier</button></div></div>`;
+        <div class="row" style="margin-top:12px"><button class="primary grow" data-log="${c.id}">+ Séance</button><button class="small" data-more="${c.id}">⋯</button></div></div>`;
     }
   }
   h+='</div>';
@@ -355,6 +355,9 @@ function sheetClient(name=''){
     <label>Nom</label><input id="f_name" value="${esc(name)}">
     <label>Type de paiement</label><div class="chips" id="modeChips"><button class="on" data-mode="pack">Packs</button><button data-mode="month">Fin de mois</button></div>
     <div id="rateBox" style="display:none"><label>Tarif par séance (€)</label><input id="f_rate" type="number" inputmode="decimal" value="45"></div>
+    <div id="packBox"><label>Mode de paiement</label><div class="chips" id="payChips">${['CESU','Virement'].map((m,i)=>`<button class="${i===0?'on':''}" data-pay="${m}">${m}</button>`).join('')}</div>
+    <label>Nombre de séances du pack</label><div class="chips" id="sizeChips">${[5,8,10,20].map(n=>`<button class="${n===8?'on':''}" data-size="${n}">${n}</button>`).join('')}<button data-size="0">Plus tard</button></div>
+    <label><input id="f_paid" type="checkbox" style="width:auto;margin-right:8px">Déjà réglé</label></div>
     <button class="primary go" data-saveclient>Créer</button>`);
 }
 function sheetPack(id){
@@ -409,10 +412,14 @@ document.addEventListener('click',e=>{
   if(d.settle){S.sessions.filter(s=>s.clientId===d.settle&&mkey(s.date)===viewMonth).forEach(s=>s.settled=true);save();render();return}
   if('csv' in d){csv();return}
   if('newclient' in d){sheetClient();return}
-  if(d.mode){document.querySelectorAll('#modeChips button').forEach(b=>b.classList.toggle('on',b===el));$('rateBox').style.display=d.mode==='month'?'block':'none';return}
+  if(d.mode){document.querySelectorAll('#modeChips button').forEach(b=>b.classList.toggle('on',b===el));$('rateBox').style.display=d.mode==='month'?'block':'none';$('packBox').style.display=d.mode==='pack'?'block':'none';return}
   if('saveclient' in d){const name=$('f_name').value.trim();if(!name)return;
     const mode=document.querySelector('#modeChips .on').dataset.mode;
-    S.clients.push({id:uid(),name,mode,rate:mode==='month'?(parseFloat($('f_rate').value)||0):0});save();close();render();return}
+    const c={id:uid(),name,mode,rate:mode==='month'?(parseFloat($('f_rate').value)||0):0};S.clients.push(c);
+    if(mode==='pack'){const size=+document.querySelector('#sizeChips .on').dataset.size,pay=document.querySelector('#payChips .on').dataset.pay;
+      if(size>0){newPack(c.id,size,pay,$('f_paid').checked);toast(`${name} créé·e, pack de ${size} (${pay})`)}else save()}
+    else save();
+    close();render();return}
   if(d.newpack){sheetPack(d.newpack);return}
   if(d.size){document.querySelectorAll('#sizeChips button').forEach(b=>b.classList.toggle('on',b===el));return}
   if(d.pay){document.querySelectorAll('#payChips button').forEach(b=>b.classList.toggle('on',b===el));

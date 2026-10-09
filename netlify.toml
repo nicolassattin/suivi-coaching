@@ -1,0 +1,4 @@
+# Netlify publie la racine du dépôt telle quelle (pas d'étape de construction).
+[build]
+  publish = "."
+  command = ""
