@@ -23,8 +23,8 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:400 1.0625rem/1.45 var(--body);-webkit-font-smoothing:antialiased;padding-bottom:96px}
 :focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:4px}
-.bar{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(.7rem + env(safe-area-inset-top)) 1rem .7rem}
-.brand{font:700 1.45rem/1 var(--display);letter-spacing:.01em}.brand span{color:var(--amber)}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(.7rem + env(safe-area-inset-top)) 1rem .7rem}
+.brand{font:700 1.45rem/1 var(--display);letter-spacing:.01em}.brand span{color:var(--amber)}.sync{font:500 .78rem var(--body);color:#9fb0cc;white-space:nowrap}
 .brand small{font:500 .9rem var(--body);color:#c9d2e0;margin-left:.7rem;letter-spacing:0}
 main{max-width:40rem;margin:0 auto;padding:16px}
 h1{font:700 2.3rem/1.02 var(--display);letter-spacing:.005em;color:var(--heading);margin:8px 0 14px}
@@ -77,7 +77,7 @@ input,select{width:100%;font:inherit;padding:.8rem .9rem;border-radius:10px;bord
 </style>
 </head>
 <body>
-<header class="bar"><span class="brand">Nicolas Sattin <span>Coaching</span></span></header>
+<header class="bar"><span class="brand">Nicolas Sattin <span>Coaching</span></span><span id="sync" class="sync"></span></header>
 <main id="app"></main>
 <nav id="nav"></nav>
 <div id="layer"></div>
@@ -112,7 +112,68 @@ function seed(){
     sessions:s};
 }
 let S=(()=>{try{return JSON.parse(localStorage.getItem(KEY))||seed()}catch{return seed()}})();
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{}};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{}scheduleSync()};
+
+// ---------- Synchronisation (base de données de l'artifact) ----------
+// Principe : la page n'applique que les changements venus d'ailleurs. Tout ce qu'elle a elle-même écrit
+// (même quand l'écho arrive en retard) est reconnu et ignoré, pour ne jamais revenir en arrière.
+let db=null,dl=null,syncTimer=null,flushing=false,dirty=false,syncState='';
+const written={},lastW={},knownMonths=new Set();
+const canon=o=>Array.isArray(o)?'['+o.map(canon).join(',')+']':(o&&typeof o==='object')?'{'+Object.keys(o).sort().map(k=>JSON.stringify(k)+':'+canon(o[k])).join(',')+'}':JSON.stringify(o);
+const seen=(p,j)=>(written[p]??=new Set()).has(j);
+const mark=(p,j)=>{const st=(written[p]??=new Set());st.add(j);if(st.size>30)st.delete(st.values().next().value);lastW[p]=j};
+const pending=()=>!!syncTimer||flushing;
+const persistLocal=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{}};
+function setSync(st){syncState=st;const el=document.getElementById('sync');if(el)el.textContent={ok:'☁ synchronisé',busy:'☁ …',err:'⚠ synchro en échec'}[st]||''}
+const mainOf=o=>({demo:!!o.demo,clients:o.clients||[],packs:o.packs||[],logged:o.logged||{}});
+function split(o){const byM={};(o.sessions||[]).forEach(x=>(byM[mkey(x.date)]??=[]).push(x));return{main:mainOf(o),byM}}
+function scheduleSync(){if(!db)return;setSync('busy');clearTimeout(syncTimer);syncTimer=setTimeout(flush,400)}
+async function flush(){
+  syncTimer=null;
+  if(flushing){dirty=true;return}
+  flushing=true;
+  try{
+    do{
+      dirty=false;
+      const{main,byM}=split(S);
+      const put=async(path,obj)=>{const j=canon(obj);if(lastW[path]===j)return;mark(path,j);await db.doc(path).set(obj)};
+      await put('app/main',main);
+      Object.keys(byM).forEach(m=>knownMonths.add(m));
+      for(const m of knownMonths) await put('sessions/'+m,{items:byM[m]||[]});
+    }while(dirty);
+    setSync('ok');
+  }catch(e){setSync('err')}
+  finally{flushing=false}
+}
+function onRemoteMain(sn){
+  if(!sn.exists||pending())return;
+  const d=mainOf(sn.data()),j=canon(d);
+  if(seen('app/main',j))return;
+  S.demo=d.demo;S.clients=d.clients;S.packs=d.packs;S.logged=d.logged;
+  mark('app/main',j);persistLocal();render();
+}
+function onRemoteMonths(q){
+  let changed=false;
+  q.docs.forEach(dc=>{
+    const m=dc.id;knownMonths.add(m);
+    if(pending())return;
+    const items=dc.data().items||[],p='sessions/'+m,j=canon({items});
+    if(seen(p,j))return;
+    S.sessions=S.sessions.filter(x=>mkey(x.date)!==m).concat(items);
+    mark(p,j);changed=true;
+  });
+  if(changed){persistLocal();render()}
+}
+async function initDb(m){
+  db=m;setSync('busy');
+  try{
+    const first=await db.doc('app/main').get();
+    if(!first.exists){await flush()}   // première fois : on envoie ce qui est déjà sur cet appareil
+    db.doc('app/main').onSnapshot(onRemoteMain,()=>setSync('err'));
+    db.collection('sessions').onSnapshot(onRemoteMonths,()=>setSync('err'));
+    setSync('ok');
+  }catch(e){db=null;setSync('')}
+}
 
 // ---------- Logique ----------
 const packsOf=c=>S.packs.filter(p=>p.clientId===c.id).sort((a,b)=>a.date.localeCompare(b.date));
@@ -264,6 +325,7 @@ function manage(){
     h+=`<div class="card"><div class="row"><div class="grow"><div class="name">${esc(c.name)}</div>
       <div class="sub">${c.mode==='pack'?'Packs':'Fin de mois · tarif '+eur(c.rate)}</div></div>
       ${c.mode==='pack'?`<button class="small primary" data-newpack="${c.id}">+ Pack</button>`:''}
+      <button class="small ghost" data-switch="${c.id}">${c.mode==='pack'?'→ fin de mois':'→ packs'}</button>
       <button class="small ghost" data-delclient="${c.id}">Suppr.</button></div>`;
     if(c.mode==='pack') h+=packsOf(c).map(p=>`<div class="sess"><span>${frDate(p.date)} · ${p.size} séances · ${esc(p.pay)}</span>
       <span class="row"><span class="tag ${p.paid?'ok':'bad'}" data-paid="${p.id}" style="cursor:pointer">${p.paid?'réglé':'à régler'}</span><span class="sub">${used(p)}/${p.size}</span></span></div>`).join('');
@@ -298,7 +360,7 @@ function sheetClient(name=''){
 function sheetPack(id){
   const c=S.clients.find(x=>x.id===id);
   sheet(`<div class="name">Nouveau pack · ${esc(c.name)}</div>
-    <label>Mode de paiement</label><div class="chips" id="payChips">${['CESU','Virement','Espèces','Chèque'].map((m,i)=>`<button class="${i===0?'on':''}" data-pay="${m}">${m}</button>`).join('')}</div>
+    <label>Mode de paiement</label><div class="chips" id="payChips">${['CESU','Virement'].map((m,i)=>`<button class="${i===0?'on':''}" data-pay="${m}">${m}</button>`).join('')}</div>
     <label>Nombre de séances</label><div class="chips" id="sizeChips">${[5,8,10,20].map(n=>`<button class="${n===8?'on':''}" data-size="${n}">${n}</button>`).join('')}</div>
     <label><input id="f_paid" type="checkbox" style="width:auto;margin-right:8px">Déjà réglé</label>
     <button class="primary go" data-savepack="${id}">Enregistrer le pack</button>`);
@@ -323,7 +385,7 @@ function toast(msg,undo){
 // ---------- Événements ----------
 document.addEventListener('change',e=>{if(e.target.id==='monthSel'){viewMonth=e.target.value;render()}});
 document.addEventListener('click',e=>{
-  const el=e.target.closest('[data-tab],[data-log],[data-more],[data-open],[data-del],[data-settle],[data-csv],[data-newclient],[data-renew],[data-pay],[data-newpack],[data-delclient],[data-paid],[data-cleardemo],[data-setrate],[data-savemore],[data-mode],[data-saveclient],[data-size],[data-savepack],[data-undo],[data-close],[data-close-btn],[data-yes],[data-evlog],[data-evadd],[data-calreload]');
+  const el=e.target.closest('[data-tab],[data-log],[data-more],[data-open],[data-del],[data-settle],[data-csv],[data-newclient],[data-renew],[data-pay],[data-newpack],[data-delclient],[data-paid],[data-cleardemo],[data-setrate],[data-savemore],[data-mode],[data-saveclient],[data-size],[data-savepack],[data-undo],[data-close],[data-close-btn],[data-yes],[data-evlog],[data-evadd],[data-calreload],[data-switch]');
   if(!el) return;
   const d=el.dataset;
   if('closeBtn' in d){close();return}
@@ -331,6 +393,7 @@ document.addEventListener('click',e=>{
   if(el.hasAttribute('data-close')){ if(e.target===el) close(); return; }
   if(d.tab){tab=d.tab;render();return}
   if('calreload' in d){loadToday();return}
+  if(d.switch){const c=S.clients.find(x=>x.id===d.switch);c.mode=c.mode==='pack'?'month':'pack';if(c.mode==='month'&&!c.rate)c.rate=45;save();render();return}
   if(d.evlog){const ev=cal.events[+d.evlog],c=evClient(ev);if(!c)return;const s=addSession(c.id);(S.logged??={})[ev.id]=s.id;save();render();
     toast(`Séance enregistrée : ${c.name}`,()=>{S.sessions=S.sessions.filter(x=>x.id!==s.id);delete S.logged[ev.id];save();render()});return}
   if(d.evadd){sheetClient(evBase(cal.events[+d.evadd]));return}
@@ -365,15 +428,21 @@ document.addEventListener('click',e=>{
   if('undo' in d){document.getElementById('toast')._undo?.();document.getElementById('toast')?.remove();return}
 });
 
-function csv(){
+async function csv(){
   const rows=[['Date','Élève','Titre','Tarif','Pack','Réglé']];
   S.sessions.filter(s=>mkey(s.date)===viewMonth).sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
     const c=S.clients.find(x=>x.id===s.clientId);rows.push([s.date,c?.name,s.label,s.rate,s.packId?'oui':'non',s.settled?'oui':'non']);});
-  const blob=new Blob(['﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n')],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`seances-${viewMonth}.csv`;a.click();
+  const text='﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n');
+  const name=`seances-${viewMonth}.csv`;
+  if(dl){try{await dl.save({filename:name,data:text})}catch(e){if(e?.code!=='declined')toast('Export impossible ici')}return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download=name;a.click();
 }
 render();
-(function(){try{const c=window.claude;if(c&&c.use)c.use('mcp').then(m=>{mcp=m;if(m)loadToday()}).catch(()=>{})}catch{}})();
+(function(){try{const c=window.claude;if(!(c&&c.use))return;
+  c.use('mcp').then(m=>{mcp=m;if(m)loadToday()}).catch(()=>{});
+  c.use('downloads').then(m=>{dl=m}).catch(()=>{});
+  c.use('db').then(m=>{if(m)initDb(m)}).catch(()=>{});
+}catch{}})();
 </script>
 </body>
 </html>
