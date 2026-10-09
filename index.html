@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Séances">
+<title>Suivi Coaching</title>
+<style>
+:root{--bg:#f5f5f7;--card:#fff;--text:#1c1c1e;--muted:#6e6e73;--line:#e3e3e8;--accent:#e4572e;--accent-t:#fff;--ok:#2e9e5b;--warn:#d98a00;--bad:#d1333a;--warn-bg:#fff4dc;--bad-bg:#fde8e9;--info-bg:#e8f0fe}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111113;--card:#1c1c1f;--text:#f2f2f4;--muted:#9a9aa1;--line:#2c2c30;--warn-bg:#3a2e10;--bad-bg:#3b1a1c;--info-bg:#1c2740}}
+:root[data-theme="dark"]{--bg:#111113;--card:#1c1c1f;--text:#f2f2f4;--muted:#9a9aa1;--line:#2c2c30;--warn-bg:#3a2e10;--bad-bg:#3b1a1c;--info-bg:#1c2740}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;padding-bottom:90px}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:24px;margin:8px 0 14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:22px 0 8px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;border:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.name{font-weight:600;font-size:17px}
+.sub{color:var(--muted);font-size:14px}
+.big{font-size:34px;font-weight:700;line-height:1;text-align:right}
+.big small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:4px}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;background:var(--line);color:var(--text)}
+button.primary{background:var(--accent);color:var(--accent-t);font-weight:600}
+button.go{width:100%;padding:16px;font-size:17px;margin-top:12px}
+button.small{padding:6px 10px;font-size:14px}
+button.ghost{background:transparent;color:var(--muted)}
+button:active{transform:scale(.98)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid2 .card{margin:0;padding:12px}.grid2 button{white-space:nowrap;padding:12px 8px}.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.big.l{text-align:left;margin-top:10px;font-size:30px}.dots{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--accent)}
+.alert{border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:15px}
+.alert.warn{background:var(--warn-bg)}.alert.bad{background:var(--bad-bg)}.alert.info{background:var(--info-bg)}
+.alert b{display:block}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+nav button{flex:1;background:none;border-radius:10px;color:var(--muted);font-size:13px;padding:8px 4px}
+nav button.on{color:var(--accent);font-weight:700}
+nav button span{display:block;font-size:20px}
+.toast{position:fixed;left:16px;right:16px;bottom:84px;max-width:608px;margin:0 auto;background:#222;color:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:20}
+.toast button{background:#444;color:#fff;padding:6px 12px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;z-index:30}
+.sheet{background:var(--card);width:100%;max-width:640px;margin:0 auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+input,select{width:100%;font:inherit;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{padding:9px 14px}.chips button.on{background:var(--accent);color:var(--accent-t)}
+.tot{display:flex;gap:10px}.tot .card{flex:1;margin:0;text-align:center}.tot b{font-size:24px;display:block}
+.sess{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:15px;gap:8px}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;background:var(--line);color:var(--muted)}
+.tag.ok{background:var(--info-bg);color:var(--ok)}.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.ev{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.ev:first-of-type{border-top:0}.ev .t{width:46px;font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}.cdot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--muted)}.cdot.red{background:var(--bad)}.cdot.blue{background:#3b82f6}.empty{color:var(--muted);text-align:center;padding:30px 0}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav id="nav"></nav>
+<div id="layer"></div>
+
+<script>
+// ---------- Données ----------
+const KEY='suivi-coaching-v2';
+const uid=()=>Math.random().toString(36).slice(2,9);
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today=()=>ymd(new Date());
+const mkey=s=>s.slice(0,7);
+const eur=n=>(Math.round(n*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2})+' €';
+const MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const monthLabel=k=>{const[y,m]=k.split('-');return MOIS[+m-1]+' '+y};
+const frDate=s=>{const[y,m,d]=s.split('-');return `${d}/${m}`};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ALERT_THRESHOLD=2;      // alerte "fin de pack" quand il reste ≤ 2 séances
+const MONTH_END_DAYS=5;       // alerte "fin de mois" pendant les 5 derniers jours
+
+function seed(){
+  const d=n=>{const x=new Date();x.setDate(x.getDate()-n);return ymd(x)};
+  const a=uid(),b=uid(),c=uid(),p1=uid(),p2=uid();
+  const s=[];
+  [20,17,13,9,6].forEach(n=>s.push({id:uid(),clientId:a,packId:p1,date:d(n),rate:0,label:'',settled:true}));
+  [40,30,22,15,8,4,1].forEach(n=>s.push({id:uid(),clientId:b,packId:p2,date:d(n),rate:0,label:'',settled:true}));
+  [35,28,14,7].forEach(n=>s.push({id:uid(),clientId:c,packId:null,date:d(n),rate:45,label:'',settled:false}));
+  s.push({id:uid(),clientId:c,packId:null,date:d(10),rate:150,label:'Atelier management',settled:false});
+  return{demo:true,
+    clients:[{id:a,name:'Léa (démo)',mode:'pack',rate:0},{id:b,name:'Hugo (démo)',mode:'pack',rate:0},{id:c,name:'Entreprise ACME (démo)',mode:'month',rate:45}],
+    packs:[{id:p1,clientId:a,size:8,pay:'CESU',paid:true,date:d(25)},{id:p2,clientId:b,size:10,pay:'Virement',paid:false,date:d(45)}],
+    sessions:s};
+}
+let S=(()=>{try{return JSON.parse(localStorage.getItem(KEY))||seed()}catch{return seed()}})();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch{}};
+
+// ---------- Logique ----------
+const packsOf=c=>S.packs.filter(p=>p.clientId===c.id).sort((a,b)=>a.date.localeCompare(b.date));
+const used=p=>S.sessions.filter(s=>s.packId===p.id).length;
+const left=p=>p.size-used(p);
+const activePack=c=>packsOf(c).find(p=>left(p)>0);
+const remaining=c=>packsOf(c).reduce((n,p)=>n+Math.max(0,left(p)),0);
+const overflow=c=>S.sessions.filter(s=>s.clientId===c.id&&!s.packId&&c.mode==='pack').length;
+
+function addSession(clientId,{rate,label,date}={}){
+  const c=S.clients.find(x=>x.id===clientId);
+  const s={id:uid(),clientId,date:date||today(),label:label||'',packId:null,rate:rate??c.rate,settled:false};
+  if(c.mode==='pack'){
+    const p=activePack(c);
+    if(p){s.packId=p.id;s.rate=0;s.settled=true}else s.rate=0;
+  }
+  S.sessions.push(s);save();return s;
+}
+function alerts(){
+  const out=[],now=new Date(),cm=mkey(today());
+  const dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const endOfMonth=now.getDate()>dim-MONTH_END_DAYS;
+  for(const c of S.clients){
+    if(c.mode==='pack'){
+      const r=remaining(c),o=overflow(c);
+      if(o>0) out.push({k:'bad',t:`${c.name} : ${o} séance(s) hors pack`,d:'Plus de pack actif. Enregistre un nouveau pack pour les rattacher.'});
+      else if(r===0&&packsOf(c).length) out.push({k:'bad',t:`${c.name} : pack terminé`,d:'Propose un nouveau pack (5, 10 ou 20 séances).'});
+      else if(r>0&&r<=ALERT_THRESHOLD) out.push({k:'warn',t:`${c.name} : plus que ${r} séance${r>1?'s':''}`,d:'Fin de pack proche, pense à proposer le suivant.'});
+      packsOf(c).filter(p=>!p.paid).forEach(p=>out.push({k:'info',t:`${c.name} : pack de ${p.size} non réglé`,d:p.pay}));
+    }else{
+      const byM={};
+      S.sessions.filter(s=>s.clientId===c.id&&!s.settled).forEach(s=>{(byM[mkey(s.date)]??=[]).push(s)});
+      for(const m of Object.keys(byM).sort()){
+        const tot=byM[m].reduce((n,s)=>n+s.rate,0);
+        if(m<cm) out.push({k:'bad',t:`${c.name} : ${eur(tot)} à réclamer`,d:`Solde de ${monthLabel(m)} non réglé (${byM[m].length} séance${byM[m].length>1?'s':''}).`});
+        else if(endOfMonth) out.push({k:'warn',t:`${c.name} : fin de mois, ${eur(tot)} à facturer`,d:`${byM[m].length} séance${byM[m].length>1?'s':''} en ${monthLabel(m)}.`});
+      }
+    }
+  }
+  const order={bad:0,warn:1,info:2};
+  return out.sort((a,b)=>order[a.k]-order[b.k]);
+}
+
+// ---------- UI ----------
+let tab='home',viewMonth=mkey(today()),openClient=null,toastTimer=null;
+const $=id=>document.getElementById(id);
+
+function render(){
+  $('nav').innerHTML=[['home','🏠','Accueil'],['count','📊','Décompte'],['manage','⚙️','Gérer']]
+    .map(([k,i,l])=>`<button class="${tab===k?'on':''}" data-tab="${k}"><span>${i}</span>${l}</button>`).join('');
+  $('app').innerHTML={home,count,manage}[tab]();
+}
+
+
+// ---------- Google Agenda (aujourd'hui) ----------
+const CAL_SERVER='Google Calendar';
+let mcp=null,cal={state:'idle',events:[],err:null};
+const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\(demo\)/g,'').replace(/[^a-z0-9 ]/g,' ').trim();
+const evBase=ev=>String(ev.summary||'').replace(/\s*[-–]\s*\d+\s*$/,'').replace(/\?/g,'').trim();
+const evClient=ev=>{const w=norm(evBase(ev)).split(/\s+/)[0];return w?S.clients.find(c=>norm(c.name).split(/\s+/)[0]===w):null};
+const evColor=ev=>ev.colorId==='11'?'red':(ev.colorId==='7'||ev.colorId==='9')?'blue':'';
+const evTime=ev=>ev.start?.dateTime?new Date(ev.start.dateTime).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'Jour';
+async function loadToday(){
+  if(!mcp)return;
+  cal.state='loading';render();
+  const t=new Date(),n=new Date(t.getFullYear(),t.getMonth(),t.getDate()+1);
+  try{
+    const r=await mcp.callTool(CAL_SERVER,'list_events',{startTime:`${today()}T00:00:00`,endTime:`${ymd(n)}T00:00:00`,orderBy:'startTime',pageSize:50});
+    let pl=r.payload;if(typeof pl==='string'){try{pl=JSON.parse(pl)}catch{pl=null}}
+    cal.events=(pl?.events||[]).filter(e=>e.status!=='cancelled');cal.state='ok';cal.err=null;
+  }catch(e){cal.state='err';cal.err=e?.code||'upstream_error'}
+  render();
+}
+function todayBlock(){
+  if(!mcp)return '';
+  let h='<h2>Aujourd\'hui</h2><div class="card">';
+  if(cal.state==='loading'||cal.state==='idle') return h+'<div class="sub">Lecture de ton agenda…</div></div>';
+  if(cal.state==='err'){
+    const m={needs_reauth:'Reconnecte Google Agenda dans Réglages › Connecteurs.',server_not_connected:'Ajoute Google Agenda dans Réglages › Connecteurs.',selection_required:'Choisis le compte Google Agenda à utiliser.',not_in_manifest:'Accès à Google Agenda refusé pour cette page.',consent_required:'Accès à Google Agenda refusé pour cette page.'}[cal.err]||'Impossible de lire l\'agenda pour le moment.';
+    return h+`<div class="sub">${esc(m)}</div>${['needs_reauth','server_not_connected','not_in_manifest','consent_required'].includes(cal.err)?'':'<button class="small" data-calreload style="margin-top:8px">Réessayer</button>'}</div>`;
+  }
+  if(!cal.events.length) return h+'<div class="sub">Rien dans ton agenda aujourd\'hui.</div></div>';
+  cal.events.forEach((ev,i)=>{
+    const c=evClient(ev),done=S.logged?.[ev.id];
+    h+=`<div class="ev"><span class="t">${evTime(ev)}</span><span class="cdot ${evColor(ev)}"></span><div class="grow"><div class="ell">${esc(ev.summary||'(sans titre)')}</div>${c?`<div class="sub">${esc(c.name)}</div>`:''}</div>`
+      +(c?(done?'<span class="tag ok">✓ fait</span>':`<button class="small primary" data-evlog="${i}">Fait</button>`):(evColor(ev)==='red'?`<button class="small" data-evadd="${i}">+ élève</button>`:''))+'</div>';
+  });
+  return h+'<div class="sub" style="margin-top:8px"><span class="cdot red" style="display:inline-block"></span> à régler · <span class="cdot blue" style="display:inline-block"></span> réglé</div></div>';
+}
+
+function home(){
+  const al=alerts();
+  let h='<h1>Séances</h1>';
+  if(S.demo) h+='<div class="alert info"><b>Données de démonstration</b>Teste librement, puis vide tout dans « Gérer ».</div>';
+  h+=todayBlock();
+  h+=al.map(a=>`<div class="alert ${a.k}"><b>${esc(a.t)}</b>${esc(a.d)}</div>`).join('');
+  if(!S.clients.length) return h+'<div class="empty">Aucun élève pour l\'instant.<br>Ajoute-en un dans « Gérer ».</div>';
+  h+='<h2>Séance réalisée avec…</h2><div class="grid2">';
+  for(const c of S.clients){
+    if(c.mode==='pack'){
+      const p=activePack(c),r=remaining(c),total=p?p.size:0,done=p?used(p):0;
+      h+=`<div class="card"><div class="name ell">${esc(c.name)}</div>
+        <div class="sub ell">${p?`Pack ${p.size} · ${p.pay}`:'Aucun pack actif'}</div>
+        <div class="big l" style="color:${r===0?'var(--bad)':r<=ALERT_THRESHOLD?'var(--warn)':'var(--text)'}">${r}<small>restante${r>1?'s':''}</small></div>
+        ${p?`<div class="dots">${Array.from({length:total},(_,i)=>`<div class="dot ${i<done?'on':''}"></div>`).join('')}</div>`:''}
+        <div class="row" style="margin-top:12px"><button class="primary grow" data-log="${c.id}">+ Séance</button><button class="small" data-more="${c.id}">⋯</button></div>
+        ${r===0&&packsOf(c).length?`<button class="go" data-renew="${c.id}" style="margin-top:8px;padding:10px 8px">↺ Nouveau pack de ${packsOf(c).slice(-1)[0].size}</button>`:''}</div>`;
+    }else{
+      const cm=mkey(today()),ss=S.sessions.filter(s=>s.clientId===c.id&&mkey(s.date)===cm);
+      h+=`<div class="card"><div class="name ell">${esc(c.name)}</div>
+        <div class="sub ell">Fin de mois · ${eur(c.rate)}</div>
+        <div class="big l">${eur(ss.reduce((n,s)=>n+s.rate,0))}<small>${ss.length} séance${ss.length>1?'s':''} ce mois</small></div>
+        <div class="row" style="margin-top:12px"><button class="primary grow" data-log="${c.id}">+ Séance</button><button class="small" data-more="${c.id}">Atelier</button></div></div>`;
+    }
+  }
+  h+='</div>';
+  return h;
+}
+
+function count(){
+  const ss=S.sessions.filter(s=>mkey(s.date)===viewMonth);
+  const isM=s=>S.clients.find(c=>c.id===s.clientId)?.mode==='month';
+  const total=ss.filter(isM).reduce((n,s)=>n+s.rate,0);
+  const months=[...new Set(S.sessions.map(s=>mkey(s.date)).concat(mkey(today())))].sort();
+  let h=`<h1>Décompte</h1><div class="row" style="margin-bottom:12px"><select id="monthSel">${months.map(m=>`<option value="${m}" ${m===viewMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}</select>
+    <button class="small" data-csv>CSV</button></div>
+    <div class="tot"><div class="card"><b>${ss.length}</b><span class="sub">séances</span></div><div class="card"><b>${eur(total)}</b><span class="sub">à facturer (fin de mois)</span></div></div><h2>Par élève</h2>`;
+  let any=false;
+  for(const c of S.clients){
+    const cs=ss.filter(s=>s.clientId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+    if(!cs.length) continue; any=true;
+    const sum=cs.reduce((n,s)=>n+s.rate,0),unsettled=cs.filter(s=>!s.settled);
+    h+=`<div class="card"><div class="row" data-open="${c.id}" style="cursor:pointer"><div class="grow"><div class="name">${esc(c.name)}</div>
+      <div class="sub">${cs.length} séance${cs.length>1?'s':''}${c.mode==='month'?' · '+eur(sum):''}</div></div>
+      ${c.mode==='month'?(unsettled.length?`<span class="tag bad">${eur(unsettled.reduce((n,s)=>n+s.rate,0))} dû</span>`:'<span class="tag ok">réglé</span>'):'<span class="tag">pack</span>'}</div>`;
+    if(openClient===c.id){
+      h+=cs.map(s=>`<div class="sess"><span>${frDate(s.date)} ${s.label?'· '+esc(s.label):''}</span><span class="row"><span>${c.mode==='month'?eur(s.rate):''}</span><button class="small ghost" data-del="${s.id}">✕</button></span></div>`).join('');
+      if(c.mode==='month'&&unsettled.length) h+=`<button class="primary go" data-settle="${c.id}">Marquer ${monthLabel(viewMonth)} comme réglé</button>`;
+    }
+    h+='</div>';
+  }
+  return h+(any?'':'<div class="empty">Aucune séance ce mois-ci.</div>');
+}
+
+function manage(){
+  let h='<h1>Gérer</h1><button class="primary go" data-newclient>+ Nouvel élève / client</button><h2>Élèves et clients</h2>';
+  for(const c of S.clients){
+    h+=`<div class="card"><div class="row"><div class="grow"><div class="name">${esc(c.name)}</div>
+      <div class="sub">${c.mode==='pack'?'Packs':'Fin de mois · tarif '+eur(c.rate)}</div></div>
+      ${c.mode==='pack'?`<button class="small primary" data-newpack="${c.id}">+ Pack</button>`:''}
+      <button class="small ghost" data-delclient="${c.id}">Suppr.</button></div>`;
+    if(c.mode==='pack') h+=packsOf(c).map(p=>`<div class="sess"><span>${frDate(p.date)} · ${p.size} séances · ${esc(p.pay)}</span>
+      <span class="row"><span class="tag ${p.paid?'ok':'bad'}" data-paid="${p.id}" style="cursor:pointer">${p.paid?'réglé':'à régler'}</span><span class="sub">${used(p)}/${p.size}</span></span></div>`).join('');
+    h+='</div>';
+  }
+  if(S.demo) h+='<button class="go" data-cleardemo style="margin-top:20px">Vider les données de démo</button>';
+  return h;
+}
+
+// ---------- Feuilles (formulaires) ----------
+function sheet(html){ $('layer').innerHTML=`<div class="overlay" data-close><div class="sheet">${html}</div></div>`; }
+const close=()=>{$('layer').innerHTML=''};
+let pendingOk=null;
+function ask(msg,ok){pendingOk=ok;sheet(`<div class="name">${esc(msg)}</div><div class="row" style="margin-top:16px"><button class="grow" data-close-btn>Non</button><button class="primary grow" data-yes>Oui</button></div>`)}
+
+function sheetMore(id){
+  const c=S.clients.find(x=>x.id===id);
+  sheet(`<div class="name">${esc(c.name)}</div>
+    <label>Titre (ex. atelier management)</label><input id="f_label">
+    <label>Tarif (€)</label><input id="f_rate" type="number" inputmode="decimal" value="${c.rate}">
+    <div class="chips" style="margin-top:8px">${[40,45,100,150].map(v=>`<button data-setrate="${v}">${v} €</button>`).join('')}</div>
+    <label>Date</label><input id="f_date" type="date" value="${today()}">
+    <button class="primary go" data-savemore="${id}">Enregistrer la séance</button>`);
+}
+function sheetClient(name=''){
+  sheet(`<div class="name">Nouvel élève / client</div>
+    <label>Nom</label><input id="f_name" value="${esc(name)}">
+    <label>Type de paiement</label><div class="chips" id="modeChips"><button class="on" data-mode="pack">Packs</button><button data-mode="month">Fin de mois</button></div>
+    <div id="rateBox" style="display:none"><label>Tarif par séance (€)</label><input id="f_rate" type="number" inputmode="decimal" value="45"></div>
+    <button class="primary go" data-saveclient>Créer</button>`);
+}
+function sheetPack(id){
+  const c=S.clients.find(x=>x.id===id);
+  sheet(`<div class="name">Nouveau pack · ${esc(c.name)}</div>
+    <label>Mode de paiement</label><div class="chips" id="payChips">${['CESU','Virement','Espèces','Chèque'].map((m,i)=>`<button class="${i===0?'on':''}" data-pay="${m}">${m}</button>`).join('')}</div>
+    <label>Nombre de séances</label><div class="chips" id="sizeChips">${[5,8,10,20].map(n=>`<button class="${n===8?'on':''}" data-size="${n}">${n}</button>`).join('')}</div>
+    <label><input id="f_paid" type="checkbox" style="width:auto;margin-right:8px">Déjà réglé</label>
+    <button class="primary go" data-savepack="${id}">Enregistrer le pack</button>`);
+}
+function newPack(clientId,size,pay,paid){
+  S.packs.push({id:uid(),clientId,size,pay,paid,date:today()});
+  const c=S.clients.find(x=>x.id===clientId);
+  S.sessions.filter(s=>s.clientId===c.id&&!s.packId).sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
+    const p=activePack(c);if(p){s.packId=p.id;s.rate=0;s.settled=true}});
+  save();
+}
+
+function toast(msg,undo){
+  clearTimeout(toastTimer);
+  const t=document.createElement('div');t.className='toast';t.id='toast';
+  t.innerHTML=`<span class="grow">${esc(msg)}</span>${undo?'<button data-undo>Annuler</button>':''}`;
+  document.getElementById('toast')?.remove();document.body.appendChild(t);
+  toastTimer=setTimeout(()=>t.remove(),6000);
+  t._undo=undo;
+}
+
+// ---------- Événements ----------
+document.addEventListener('change',e=>{if(e.target.id==='monthSel'){viewMonth=e.target.value;render()}});
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-tab],[data-log],[data-more],[data-open],[data-del],[data-settle],[data-csv],[data-newclient],[data-renew],[data-pay],[data-newpack],[data-delclient],[data-paid],[data-cleardemo],[data-setrate],[data-savemore],[data-mode],[data-saveclient],[data-size],[data-savepack],[data-undo],[data-close],[data-close-btn],[data-yes],[data-evlog],[data-evadd],[data-calreload]');
+  if(!el) return;
+  const d=el.dataset;
+  if('closeBtn' in d){close();return}
+  if('yes' in d){const f=pendingOk;pendingOk=null;close();f&&f();return}
+  if(el.hasAttribute('data-close')){ if(e.target===el) close(); return; }
+  if(d.tab){tab=d.tab;render();return}
+  if('calreload' in d){loadToday();return}
+  if(d.evlog){const ev=cal.events[+d.evlog],c=evClient(ev);if(!c)return;const s=addSession(c.id);(S.logged??={})[ev.id]=s.id;save();render();
+    toast(`Séance enregistrée : ${c.name}`,()=>{S.sessions=S.sessions.filter(x=>x.id!==s.id);delete S.logged[ev.id];save();render()});return}
+  if(d.evadd){sheetClient(evBase(cal.events[+d.evadd]));return}
+  if(d.log){const c=S.clients.find(x=>x.id===d.log);const s=addSession(d.log);render();
+    toast(`Séance enregistrée : ${c.name}`,()=>{S.sessions=S.sessions.filter(x=>x.id!==s.id);save();render()});return}
+  if(d.more){sheetMore(d.more);return}
+  if('setrate' in d){$('f_rate').value=d.setrate;return}
+  if(d.savemore){const label=$('f_label').value.trim(),rate=parseFloat($('f_rate').value)||0,date=$('f_date').value||today();
+    const s=addSession(d.savemore,{rate,label,date});close();render();
+    toast('Séance enregistrée',()=>{S.sessions=S.sessions.filter(x=>x.id!==s.id);save();render()});return}
+  if(d.open){openClient=openClient===d.open?null:d.open;render();return}
+  if(d.del){ask('Supprimer cette séance ?',()=>{S.sessions=S.sessions.filter(x=>x.id!==d.del);save();render()});return}
+  if(d.settle){S.sessions.filter(s=>s.clientId===d.settle&&mkey(s.date)===viewMonth).forEach(s=>s.settled=true);save();render();return}
+  if('csv' in d){csv();return}
+  if('newclient' in d){sheetClient();return}
+  if(d.mode){document.querySelectorAll('#modeChips button').forEach(b=>b.classList.toggle('on',b===el));$('rateBox').style.display=d.mode==='month'?'block':'none';return}
+  if('saveclient' in d){const name=$('f_name').value.trim();if(!name)return;
+    const mode=document.querySelector('#modeChips .on').dataset.mode;
+    S.clients.push({id:uid(),name,mode,rate:mode==='month'?(parseFloat($('f_rate').value)||0):0});save();close();render();return}
+  if(d.newpack){sheetPack(d.newpack);return}
+  if(d.size){document.querySelectorAll('#sizeChips button').forEach(b=>b.classList.toggle('on',b===el));return}
+  if(d.pay){document.querySelectorAll('#payChips button').forEach(b=>b.classList.toggle('on',b===el));
+    document.querySelectorAll('#sizeChips button').forEach(b=>b.classList.toggle('on',b.dataset.size===(d.pay==='CESU'?'8':'10')));return}
+  if(d.savepack){const size=+document.querySelector('#sizeChips .on').dataset.size,pay=document.querySelector('#payChips .on').dataset.pay;
+    newPack(d.savepack,size,pay,$('f_paid').checked);close();render();return}
+  if(d.renew){const last=packsOf(S.clients.find(x=>x.id===d.renew)).slice(-1)[0];
+    newPack(d.renew,last.size,last.pay,false);render();toast(`Nouveau pack de ${last.size} (${last.pay}), à régler`);return}
+  if(d.delclient){ask('Supprimer ce client et tout son historique ?',()=>{
+    S.clients=S.clients.filter(c=>c.id!==d.delclient);S.packs=S.packs.filter(p=>p.clientId!==d.delclient);S.sessions=S.sessions.filter(s=>s.clientId!==d.delclient);save();render()});return}
+  if(d.paid){const p=S.packs.find(x=>x.id===d.paid);p.paid=!p.paid;save();render();return}
+  if('cleardemo' in d){ask('Supprimer toutes les données de démo ?',()=>{S={demo:false,clients:[],packs:[],sessions:[]};save();render()});return}
+  if('undo' in d){document.getElementById('toast')._undo?.();document.getElementById('toast')?.remove();return}
+});
+
+function csv(){
+  const rows=[['Date','Élève','Titre','Tarif','Pack','Réglé']];
+  S.sessions.filter(s=>mkey(s.date)===viewMonth).sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
+    const c=S.clients.find(x=>x.id===s.clientId);rows.push([s.date,c?.name,s.label,s.rate,s.packId?'oui':'non',s.settled?'oui':'non']);});
+  const blob=new Blob(['﻿'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`seances-${viewMonth}.csv`;a.click();
+}
+render();
+(function(){try{const c=window.claude;if(c&&c.use)c.use('mcp').then(m=>{mcp=m;if(m)loadToday()}).catch(()=>{})}catch{}})();
+</script>
+</body>
+</html>
