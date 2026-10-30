@@ -102,7 +102,7 @@ function todayList(){
 function render(){
   const el=document.getElementById('app');
   let h='<h1>Élèves</h1>';
-  if(!mcp||!db){return el.innerHTML=h+'<div class="alert info"><b>Ouvre cette page dans Claude</b>Le suivi lit ton agenda Google, il ne fonctionne que dans Claude.</div>'}
+  if(!mcp||!db){return el.innerHTML=h+'<div class="alert info"><b>Première connexion</b>Colle ici l\'adresse de ton serveur Google (donnée dans le guide d\'installation).</div><input id="srvUrl" placeholder="https://script.google.com/macros/s/…/exec?key=…" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;margin-bottom:10px"><button class="primary" id="srvSave" style="width:100%">Enregistrer</button>'}
   if(!roster){return el.innerHTML=h+'<div class="alert info"><b>Liste des élèves vide</b>Demande à Claude de l\'initialiser.</div>'}
   if(state==='err'){
     const m={needs_reauth:'Reconnecte Google Agenda dans Réglages › Connecteurs.',server_not_connected:'Ajoute Google Agenda dans Réglages › Connecteurs.',not_in_manifest:'Accès à Google Agenda refusé pour cette page.',consent_required:'Accès à Google Agenda refusé pour cette page.'}[err]||'Impossible de lire l\'agenda pour le moment.';
@@ -170,9 +170,10 @@ function openRenew(i){
     <div class="row"><button class="grow" data-close-btn>Annuler</button><button class="primary grow" data-confirm="${i}">Valider le renouvellement</button></div></div></div>`;
 }
 document.addEventListener('click',e=>{
-  const el=e.target.closest('#reload,[data-adj],[data-renew],[data-size],[data-confirm],[data-close-btn],[data-close],[data-undo]');
+  const el=e.target.closest('#reload,#srvSave,[data-adj],[data-renew],[data-size],[data-confirm],[data-close-btn],[data-close],[data-undo]');
   if(!el)return;const d=el.dataset;
   if(el.id==='reload'){load();return}
+  if(el.id==='srvSave'){const v=document.getElementById('srvUrl').value.trim();if(v){try{localStorage.setItem('srv',v)}catch(e){}location.reload()}return}
   if('closeBtn' in d){closeSheet();return}
   if('close' in d){if(e.target===el)closeSheet();return}
   if('undo' in d){if(undoJson){roster=JSON.parse(undoJson);undoJson=null;render();persist()}document.getElementById('toast')?.remove();return}
@@ -187,7 +188,20 @@ function setSync(t){const el=document.getElementById('sync');if(el)el.textConten
 render();
 (async()=>{
   try{
-    const c=window.claude;if(!(c&&c.use))return;
+    const c=window.claude;
+    if(!(c&&c.use)){
+      let u='';try{u=localStorage.getItem('srv')||''}catch(e){}
+      if(!u)return;
+      const q=new URL(u),key=q.searchParams.get('key'),api=q.origin+q.pathname;
+      const get=(a,x)=>fetch(api+'?key='+encodeURIComponent(key)+'&action='+a+(x||'')).then(r=>r.json());
+      mcp={callTool:async(_,__,inp)=>({payload:await get('events','&from='+encodeURIComponent(inp.startTime)+'&to='+encodeURIComponent(inp.endTime))})};
+      db={doc:()=>({
+        set:d=>fetch(api,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({key,roster:d})}).then(r=>r.json()).then(r=>{if(!r.ok)throw 0}),
+        onSnapshot:(ok,ko)=>get('roster').then(r=>ok({exists:!!r.roster,data:()=>r.roster}),ko)
+      })};
+      render();db.doc().onSnapshot(sn=>{roster=sn.exists?sn.data():null;setSync(roster?'☁ liste à jour':'');load()},()=>setSync('⚠ liste indisponible'));
+      return;
+    }
     const [m,d]=await Promise.all([c.use('mcp').catch(()=>null),c.use('db').catch(()=>null)]);
     mcp=m;db=d;render();
     if(!db)return;
