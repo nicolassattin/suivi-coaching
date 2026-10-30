@@ -173,7 +173,7 @@ document.addEventListener('click',e=>{
   const el=e.target.closest('#reload,#srvSave,[data-adj],[data-renew],[data-size],[data-confirm],[data-close-btn],[data-close],[data-undo]');
   if(!el)return;const d=el.dataset;
   if(el.id==='reload'){load();return}
-  if(el.id==='srvSave'){const v=document.getElementById('srvUrl').value.trim();if(v){try{localStorage.setItem('srv',v)}catch(e){}location.reload()}return}
+  if(el.id==='srvSave'){const v=document.getElementById('srvUrl').value.trim();if(v){try{localStorage.setItem('srv',v)}catch(e){}location.hash='srv='+encodeURIComponent(v);location.reload()}return}
   if('closeBtn' in d){closeSheet();return}
   if('close' in d){if(e.target===el)closeSheet();return}
   if('undo' in d){if(undoJson){roster=JSON.parse(undoJson);undoJson=null;render();persist()}document.getElementById('toast')?.remove();return}
@@ -191,6 +191,7 @@ render();
     const c=window.claude;
     if(!(c&&c.use)){
       let u='';try{u=localStorage.getItem('srv')||''}catch(e){}
+      const hs=new URLSearchParams(location.hash.slice(1)).get('srv');if(hs){u=hs;try{localStorage.setItem('srv',hs)}catch(e){}}
       if(!u)return;
       const q=new URL(u),key=q.searchParams.get('key'),api=q.origin+q.pathname;
       const get=(a,x)=>fetch(api+'?key='+encodeURIComponent(key)+'&action='+a+(x||'')).then(r=>r.json());
